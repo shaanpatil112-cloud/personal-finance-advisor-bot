@@ -1,6 +1,118 @@
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/shaanpatil12-cloud/personal-finance-advisor-bot.git
-git push -u origin main
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Personal Finance Advisor Bot – Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f1;--panel:#fff;--ink:#10222b;--mute:#5b6b70;--line:#d5dedc;--ok:#0f766e;--warn:#c2410c;--track:#e3eae8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1a1f;--panel:#14262d;--ink:#e6efee;--mute:#93a5a9;--line:#24393f;--ok:#2dd4bf;--warn:#fb923c;--track:#1d3239}}
+:root[data-theme="dark"]{--bg:#0d1a1f;--panel:#14262d;--ink:#e6efee;--mute:#93a5a9;--line:#24393f;--ok:#2dd4bf;--warn:#fb923c;--track:#1d3239}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+main{max-width:980px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:clamp(28px,5vw,44px);font-weight:800;margin:0 0 6px;letter-spacing:-.02em}
+h2{font-size:18px;margin:0 0 12px}
+p.lead{color:var(--mute);margin:0 0 24px;max-width:60ch}
+.grid{display:grid;grid-template-columns:1fr 1.3fr;gap:18px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+input,select,button{font:inherit;color:inherit}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+button{cursor:pointer;border:0;border-radius:6px;padding:10px 14px;background:var(--ok);color:#fff;font-weight:600}
+button.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ok);outline-offset:2px}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat b{display:block;font-size:22px}.stat span{font-size:13px;color:var(--mute)}
+.cat{margin:12px 0}
+.cat .top{display:flex;justify-content:space-between;font-size:14px}
+.bar{height:8px;background:var(--track);border-radius:4px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--ok)}
+.bar i.over{background:var(--warn)}
+ul{padding-left:18px;margin:8px 0}li{margin:6px 0}
+.log{max-height:150px;overflow:auto;font-size:13px;color:var(--mute);margin-top:10px}
+.note{font-size:12px;color:var(--mute);margin-top:18px}
+</style>
+</head>
+<body>
+<main>
+<h1>Personal Finance Advisor Bot</h1>
+<p class="lead">Add income and expenses, pick who you are, and get a budget plan with saving suggestions. This demo runs the rules in your browser; the full app uses Flask, SQLAlchemy and an AI engine.</p>
+<div class="grid">
+<section class="panel">
+<h2>Your month</h2>
+<label for="type">I am a</label>
+<select id="type">
+<option value="salaried">Salaried professional</option>
+<option value="student">College student</option>
+<option value="freelancer">Freelancer</option>
+<option value="household">Household manager</option>
+</select>
+<label for="income">Monthly income (₹)</label>
+<input id="income" type="number" min="0" value="60000">
+<h2 style="margin-top:20px">Log an expense</h2>
+<div class="row">
+<div><label for="cat">Category</label><select id="cat"><option>Rent</option><option>Food</option><option>Transport</option><option>Entertainment</option><option>Other</option></select></div>
+<div><label for="amt">Amount (₹)</label><input id="amt" type="number" min="0" placeholder="0"></div>
+</div>
+<div class="btns"><button id="add">Add expense</button><button class="alt" id="sample">Load sample data</button><button class="alt" id="clear">Clear</button></div>
+<div class="log" id="log" aria-live="polite"></div>
+</section>
+<section class="panel">
+<div class="stats">
+<div class="stat"><b id="sInc">₹0</b><span>Income</span></div>
+<div class="stat"><b id="sExp">₹0</b><span>Spent</span></div>
+<div class="stat"><b id="sSav">₹0</b><span id="sSavL">Saved</span></div>
+</div>
+<h2>Budget vs. spending</h2>
+<div id="cats"></div>
+<h2 style="margin-top:20px">Advice</h2>
+<ul id="tips"></ul>
+</section>
+</div>
+<p class="note">Demo only. Figures are guidelines, not financial advice.</p>
+</main>
+<script>
+const CATS=["Rent","Food","Transport","Entertainment","Other"];
+const PLANS={
+salaried:{p:[30,15,10,10,15],save:20},
+student:{p:[30,25,10,10,10],save:15},
+freelancer:{p:[30,15,8,7,10],save:30},
+household:{p:[30,20,10,5,15],save:20}};
+let items=[];
+const $=id=>document.getElementById(id);
+const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+function render(){
+const type=$("type").value,inc=+$("income").value||0,plan=PLANS[type];
+const spent=CATS.map(c=>items.filter(i=>i.c===c).reduce((s,i)=>s+i.a,0));
+const total=spent.reduce((a,b)=>a+b,0),saved=inc-total,target=inc*plan.save/100;
+$("sInc").textContent=inr(inc);$("sExp").textContent=inr(total);
+$("sSav").textContent=inr(saved);$("sSav").style.color=saved<0?"var(--warn)":"var(--ok)";
+$("sSavL").textContent="Saved (goal "+inr(target)+")";
+$("cats").innerHTML=CATS.map((c,i)=>{const lim=inc*plan.p[i]/100,r=lim?spent[i]/lim:0;
+return `<div class="cat"><div class="top"><span>${c}</span><span>${inr(spent[i])} of ${inr(lim)}</span></div><div class="bar"><i class="${r>1?"over":""}" style="width:${Math.min(r*100,100)}%"></i></div></div>`}).join("");
+const tips=[];
+CATS.forEach((c,i)=>{const lim=inc*plan.p[i]/100;if(spent[i]>lim)tips.push(`${c} is ${inr(spent[i]-lim)} over its limit. Trim it next month or move the limit from a category you underspend.`)});
+if(!items.length)tips.push("Add some expenses or load the sample data to see advice.");
+else if(saved>=target)tips.push(`You met your saving goal of ${inr(target)}. Move the surplus into an emergency fund or a goal.`);
+else tips.push(`You are ${inr(target-saved)} short of your ${plan.save}% saving goal.`);
+if(type==="freelancer")tips.push(`Aim for an emergency fund of ${inr(inc*(plan.p[0]+plan.p[1]+plan.p[2])/100*4)} (about 4 months of essentials). Budget from your average income, not your best month.`);
+if(type==="student")tips.push("Split your allowance into weekly amounts so one big week doesn't drain the month.");
+if(type==="household")tips.push("Review Food and Rent first: they are the biggest levers for a family budget.");
+$("tips").innerHTML=tips.map(t=>`<li>${t}</li>`).join("");
+$("log").innerHTML=items.slice().reverse().map(i=>`${i.c}: ${inr(i.a)}`).join("<br>");
+}
+$("add").onclick=()=>{const a=+$("amt").value;if(a>0){items.push({c:$("cat").value,a});$("amt").value="";render()}};
+$("sample").onclick=()=>{$("income").value=60000;items=[{c:"Rent",a:18000},{c:"Food",a:12000},{c:"Transport",a:4500},{c:"Entertainment",a:9000},{c:"Other",a:6000}];render()};
+$("clear").onclick=()=>{items=[];render()};
+$("type").onchange=$("income").oninput=render;
+render();
+</script>
+</body>
+</html>
